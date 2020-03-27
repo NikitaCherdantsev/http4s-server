@@ -25,22 +25,11 @@ object JsonService {
     HttpRoutes.of[IO] {
       case GET -> Root / "json" / msg =>
         val jsonStream = Stream
-          .repeatEval(IO(JsonInfo(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")), msg).asJson))
-          .metered(3.second)
-          .interruptAfter(10.seconds)
-        for {
-          resp <- Ok(jsonStream)
-        } yield resp
+          .awakeEvery[IO](3.second)
+          .map(_ => JsonInfo(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")), msg).asJson)
+          .take(5)
+        Ok(jsonStream)
     }
-
-//  val jsonService: HttpRoutes[IO] =
-//    HttpRoutes.of[IO] {
-//      case GET -> Root / "json" / msg =>
-//        for {
-//          resp <- Ok(JsonInfo(LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")), msg).asJson)
-//        } yield resp
-//    }
-
 }
 
 final case class JsonInfo(time: String, message: String)
